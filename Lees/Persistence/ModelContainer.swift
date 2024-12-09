@@ -9,7 +9,8 @@ import SwiftData
 
 var sharedModelContainer: ModelContainer = {
     let schema = Schema([
-        Item.self,
+        Book.self,
+        ReadingSession.self
     ])
     let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

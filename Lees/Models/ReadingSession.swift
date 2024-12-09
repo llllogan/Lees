@@ -11,25 +11,26 @@ import Foundation
 
 @Model
 class ReadingSession {
+    
     var id: UUID
-    
     var date: Date
-    
+    var endDate: Date?
     var startPage: Int
-    
-    var endPage: Int
-    
+    var endPage: Int?
     var book: Book
     
-    init(date: Date, startPage: Int, endPage: Int, book: Book) {
+    init(date: Date, startPage: Int, book: Book) {
         self.id = UUID()
         self.date = date
         self.startPage = startPage
-        self.endPage = endPage
         self.book = book
     }
     
     var pagesRead: Int {
-        return max(0, endPage - startPage + 1)
+        if (endPage == nil) {
+            return 0
+        } else {
+            return max(0, endPage! - startPage + 1)
+        }
     }
 }
