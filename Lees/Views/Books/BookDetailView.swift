@@ -33,7 +33,7 @@ struct BookDetailView: View {
             
             List {
                 ForEach(book.sessions) { session in
-                    Text("Session on \(session.date, style: .date): \(session.startPage) - \(session.endPage)")
+                    Text("Session on \(session.date, style: .date): \(session.startPage) - \(session.endPage ?? 0)")
                 }
             }
         }
@@ -48,9 +48,6 @@ struct BookDetailView: View {
                     Label("Options", systemImage: "ellipsis.circle")
                 }
             }
-        }
-        .sheet(isPresented: $showingAddSessionSheet) {
-            AddReadingSessionView(book: book)
         }
         .sheet(isPresented: $showingEditBookSheet) {
             EditBookView(book: book)
