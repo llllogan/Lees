@@ -16,12 +16,19 @@ struct EditBookView: View {
     @State private var title: String
     @State private var author: String
     @State private var totalPagesText: String
+    @State private var selectedUIImage: UIImage?
+    @State private var showingImagePicker = false
     
     init(book: Book) {
         self.book = book
         _title = State(initialValue: book.title)
         _author = State(initialValue: book.author)
         _totalPagesText = State(initialValue: "\(book.totalPages)")
+        if let data = book.imageData, let uiImage = UIImage(data: data) {
+            _selectedUIImage = State(initialValue: uiImage)
+        } else {
+            _selectedUIImage = State(initialValue: nil)
+        }
     }
     
     var body: some View {
@@ -31,6 +38,17 @@ struct EditBookView: View {
                 TextField("Author", text: $author)
                 TextField("Total Pages", text: $totalPagesText)
                     .keyboardType(.numberPad)
+                if let uiImage = selectedUIImage {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 150)
+                        .cornerRadius(8)
+                }
+                
+                Button("Change Cover Image") {
+                    showingImagePicker = true
+                }
             }
             .navigationTitle("Edit Book")
             .toolbar {
@@ -43,10 +61,16 @@ struct EditBookView: View {
                         book.title = title
                         book.author = author
                         book.totalPages = totalPages
+                        if let uiImage = selectedUIImage {
+                            book.imageData = uiImage.jpegData(compressionQuality: 0.8)
+                        }
                         try? context.save()
                         dismiss()
                     }
                 }
+            }
+            .sheet(isPresented: $showingImagePicker) {
+                ImagePicker(selectedImage: $selectedUIImage)
             }
         }
     }

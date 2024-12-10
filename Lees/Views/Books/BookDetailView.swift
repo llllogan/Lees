@@ -123,7 +123,7 @@ struct BookDetailView: View {
     private var topSection: some View {
         ZStack(alignment: .bottomLeading) {
             
-            if let uiImage = uploadedImage {
+            if let data = book.imageData, let uiImage = UIImage(data: data) {
                 Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFill()

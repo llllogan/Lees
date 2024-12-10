@@ -15,6 +15,8 @@ struct AddBookView: View {
     @State private var title = ""
     @State private var author = ""
     @State private var totalPagesText = ""
+    @State private var selectedUIImage: UIImage? = nil
+    @State private var showingImagePicker = false
     
     var body: some View {
         NavigationStack {
@@ -23,6 +25,17 @@ struct AddBookView: View {
                 TextField("Author", text: $author)
                 TextField("Total Pages", text: $totalPagesText)
                     .keyboardType(.numberPad)
+                if let uiImage = selectedUIImage {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 150)
+                        .cornerRadius(8)
+                }
+                
+                Button("Select Cover Image") {
+                    showingImagePicker = true
+                }
             }
             .navigationTitle("Add a New Book")
             .toolbar {
@@ -32,13 +45,21 @@ struct AddBookView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
                         let totalPages = Int(totalPagesText) ?? 0
-                        let newBook = Book(title: title, author: author, totalPages: totalPages)
+                        let imageData = selectedUIImage?.jpegData(compressionQuality: 0.8)
+                        let newBook = Book(title: title, author: author, totalPages: totalPages, imageData: imageData)
                         context.insert(newBook)
                         try? context.save()
                         dismiss()
                     }
                 }
             }
+            .sheet(isPresented: $showingImagePicker) {
+                ImagePicker(selectedImage: $selectedUIImage)
+            }
         }
     }
+}
+
+#Preview {
+    ContentView()
 }
