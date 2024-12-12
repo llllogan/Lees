@@ -10,7 +10,7 @@ import SwiftData
 
 struct BookListView: View {
     @Environment(\.modelContext) private var context
-    @Query private var books: [Book]  // SwiftData @Query property wrapper
+    @Query private var books: [Book]
 
     @State private var showingAddBookSheet = false
 
@@ -39,4 +39,4 @@ struct BookListView: View {
     }
 }
 
-#Preview { ContentView() }
+#Preview { BookListView() }

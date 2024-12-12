@@ -21,7 +21,7 @@ struct BookDetailView: View {
     
     @State private var uploadedImage: UIImage? = nil
     
-    var book: Book
+    @State var book: Book
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -245,6 +245,7 @@ struct BookDetailView: View {
             startPage: newStartPage,
             book: book
         )
+        print(book.self)
         
         context.insert(newSession)
         do {
