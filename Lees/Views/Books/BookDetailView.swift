@@ -55,7 +55,7 @@ struct BookDetailView: View {
                         .font(.headline)
                     
                     ForEach(readingSessions) { session in
-                        var message: String = session.endPage == nil ? "Reading..." : "\(session.startPage) - \(session.endPage!)"
+                        let message: String = session.endPage == nil ? "Reading..." : "\(session.startPage) - \(session.endPage!)"
                         Text("\(session.date, style: .date): \(message)")
                     }
                 }
