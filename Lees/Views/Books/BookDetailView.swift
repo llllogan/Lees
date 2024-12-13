@@ -11,6 +11,11 @@ import SwiftData
 struct BookDetailView: View {
     @Environment(\.modelContext) private var context
     
+    let bookId: UUID
+    
+    @Query var fetchedBooks: [Book]
+    @Query var fetchedReadingSessions: [ReadingSession]
+    
     @State private var showingEditBookSheet = false
     @State private var currentSession: ReadingSession?
     @State private var isSessionActive = false // Tracks if play/pause state
@@ -19,42 +24,46 @@ struct BookDetailView: View {
     @State private var elapsedTime: TimeInterval = 0 // In seconds, update with a timer
     @State private var timer: Timer? = nil
     
+    init(book: Book) {
+        self.bookId = book.id
+        _fetchedBooks = Query(filter: #Predicate<Book> { $0.id == bookId })
+        _fetchedReadingSessions = Query(filter: #Predicate<ReadingSession> { $0.book.id == bookId })
+    }
+    
+    private var book: Book {
+        fetchedBooks.first!
+    }
+    
+    private var readingSessions: [ReadingSession] {
+        fetchedReadingSessions
+    }
+    
     @State private var uploadedImage: UIImage? = nil
     
-    @State var book: Book
-    
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            
-            topSection
-            
-            Section {
-                sectionForCurrentSession
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
                 
-                Divider()
+                topSection
                 
-                Text("Reading Sessions")
-                    .font(.headline)
-                
-                List {
-                    ForEach(book.sessions) { session in
-                        Text("Session on \(session.date, style: .date): \(session.startPage) - \(session.endPage ?? 0)")
+                Section {
+                    sectionForCurrentSession
+                    
+                    Divider()
+                    
+                    Text("Reading Sessions")
+                        .font(.headline)
+                    
+                    ForEach(readingSessions) { session in
+                        var message: String = session.endPage == nil ? "Reading..." : "\(session.startPage) - \(session.endPage!)"
+                        Text("\(session.date, style: .date): \(message)")
                     }
                 }
+                .padding(.horizontal)
+                
             }
-            .padding(.horizontal)
-            
         }
         .ignoresSafeArea(edges: .top)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Menu {
-                    Button("Edit Book Info") { showingEditBookSheet = true }
-                } label: {
-                    Label("Options", systemImage: "ellipsis.circle")
-                }
-            }
-        }
         .sheet(isPresented: $showingEditBookSheet) {
             EditBookView(book: book)
         }
@@ -182,8 +191,7 @@ struct BookDetailView: View {
     }
     
     private var nextSessionStartPage: Int {
-        // Find the highest end page from existing sessions
-        let maxEndPage = book.sessions.compactMap { $0.endPage }.max() ?? 0
+        let maxEndPage = readingSessions.compactMap { $0.endPage }.max() ?? 0
         return maxEndPage + 1
     }
     
@@ -271,14 +279,21 @@ struct BookDetailView: View {
     }
 }
 
+
 #Preview {
-    NavigationStack {
-        BookDetailView(
-            book: Book(
-                title: "Dune",
-                author: "Frank Herbert",
-                totalPages: 100
-            )
-        )
+    
+    let mockBook = Book(title: "Dune", author: "Frank Herbert", totalPages: 105)
+    let mockReadingSession = ReadingSession(date: Date(), startPage: 0, book: mockBook)
+    
+    let schema = Schema([Book.self, ReadingSession.self])
+    let container = try! ModelContainer(for: schema)
+    
+    container.mainContext.insert(mockBook)
+    container.mainContext.insert(mockReadingSession)
+    try! container.mainContext.save()
+            
+    return NavigationStack {
+        BookDetailView(book: mockBook)
+            .modelContainer(container)
     }
 }

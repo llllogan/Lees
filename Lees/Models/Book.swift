@@ -17,15 +17,11 @@ class Book {
     
     var imageData: Data?
     
-    // A book can have multiple reading sessions
-    var sessions: [ReadingSession]
-    
     init(title: String, author: String, totalPages: Int, imageData: Data? = nil) {
         self.id = UUID()
         self.title = title
         self.author = author
         self.totalPages = totalPages
-        self.sessions = []
         self.imageData = imageData
     }
 }
