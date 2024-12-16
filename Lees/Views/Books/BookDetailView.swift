@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import Charts
 
 struct BookDetailView: View {
     @Environment(\.modelContext) private var context
@@ -23,6 +24,8 @@ struct BookDetailView: View {
     @State private var endPageText = ""
     @State private var elapsedTime: TimeInterval = 0 // In seconds, update with a timer
     @State private var timer: Timer? = nil
+    
+    @State private var progress: Double = 0.5
     
     init(book: Book) {
         self.bookId = book.id
@@ -47,9 +50,14 @@ struct BookDetailView: View {
                 topSection
                 
                 Section {
-                    sectionForCurrentSession
                     
-                    Divider()
+                    progressDisplay
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color(UIColor.niceGray))
+                        .cornerRadius(16)
+                    
+                    
                     
                     Text("Reading Sessions")
                         .font(.headline)
@@ -62,6 +70,17 @@ struct BookDetailView: View {
                 .padding(.horizontal)
                 
             }
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(
+                    action: {},
+                    label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                )
+            }
+
         }
         .ignoresSafeArea(edges: .top)
         .sheet(isPresented: $showingEditBookSheet) {
@@ -89,6 +108,44 @@ struct BookDetailView: View {
             }
         }
     }
+    
+    private var progressDisplay: some View {
+        
+        VStack {
+            
+            HStack {
+                Text("Progress")
+                    .font(.title3)
+                    .fontWeight(.bold)
+
+                Spacer()
+            }
+            
+            Chart {
+                BarMark(
+                    xStart: .value("Start", 0),
+                    xEnd:   .value("End", 100),
+                    y:      .value("Category", "progress")
+                )
+                .foregroundStyle(Color.black.opacity(0.1))
+                .cornerRadius(10)
+                
+                BarMark(
+                    xStart: .value("Start", 0),
+                    xEnd:   .value("End", 80),
+                    y:      .value("Category", "progress")
+                )
+                .foregroundStyle(Color.green.opacity(0.8))
+                .cornerRadius(10)
+            }
+            .chartXScale(domain: 0...100)
+
+            
+        }
+        
+    }
+
+
     
     
     private var sectionForCurrentSession: some View {
@@ -147,15 +204,6 @@ struct BookDetailView: View {
                     .clipped()
             }
             
-            LinearGradient(
-                gradient: Gradient(stops: [
-                    .init(color: Color(uiColor: .systemBackground).opacity(0.8), location: 0.0),
-                    .init(color: Color(uiColor: .systemBackground).opacity(0), location: 0.4)
-                ]),
-                startPoint: .bottom,
-                endPoint: .top            )
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            
             HStack(alignment: .bottom) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(book.title)
@@ -163,28 +211,22 @@ struct BookDetailView: View {
                         .fontWeight(.bold)
                         .foregroundColor(Color(uiColor: .label))
                     
-                    HStack {
-                        Text("\(book.author),")
-                            .foregroundColor(Color(uiColor: .label))
-                        Text("\(book.totalPages) pages")
-                            .foregroundColor(Color(uiColor: .label))
-                    }
+                    Text("\(book.author)")
+                        .foregroundColor(Color(uiColor: .label))
                 }
                 
                 Spacer()
-                
-                Button(action: {
-                    showingEditBookSheet = true
-                }) {
-                    Text("Edit")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(Color.gray.opacity(0.5))
-                        .clipShape(Capsule())
-                }
+                Button(action: {}, label: {
+                    Text("Start Reading")
+                    Image(systemName: "book.fill")
+                })
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundColor(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color(UIColor.niceGray).opacity(0.5))
+                .clipShape(Capsule())
             }
             .padding()
         }

@@ -68,37 +68,41 @@ struct BookGridItemView: View {
                 Color.gray.opacity(0.2)
             }
             
-            VStack(alignment: .leading, spacing: 8) {
-                if let uiImage = uiImageFromData(book.imageData) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 80)
-                        .cornerRadius(8)
-                } else {
-                    // Placeholder image if none
-                    Image(systemName: "book.closed")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 80)
+            HStack {
+                VStack(alignment: .leading, spacing: 8) {
+                    if let uiImage = uiImageFromData(book.imageData) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 80)
+                            .cornerRadius(8)
+                    } else {
+                        // Placeholder image if none
+                        Image("DuneCover")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 80)
+                    }
+                    
+                    Text(book.title)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    
+                    Text(book.author)
+                        .font(.subheadline)
                         .foregroundColor(.secondary)
-                        .padding()
                 }
-                
-                Text(book.title)
-                    .font(.headline)
-                    .foregroundColor(.primary)
-                
-                Text(book.author)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                .padding()
+                Spacer()
+
             }
-            .padding(.vertical)
         }
         .cornerRadius(12)
         .shadow(radius: 4)
     }
 }
+
+
 
 private func uiImageFromData(_ data: Data?) -> UIImage? {
     guard let data = data else { return nil }
