@@ -119,6 +119,10 @@ struct BookDetailView: View {
                     .fontWeight(.bold)
 
                 Spacer()
+                
+                Button("show breakdown") {
+                    showingEditBookSheet = true
+                }
             }
             
             Chart {
@@ -135,12 +139,14 @@ struct BookDetailView: View {
                     xEnd:   .value("End", 80),
                     y:      .value("Category", "progress")
                 )
-                .foregroundStyle(Color.green.opacity(0.8))
+                .foregroundStyle(Color.orange)
                 .cornerRadius(10)
             }
             .chartXScale(domain: 0...100)
+            .chartYAxis(Visibility.hidden)
+            .frame(maxHeight: 45)
 
-            
+    
         }
         
     }
@@ -222,7 +228,7 @@ struct BookDetailView: View {
                 })
                 .font(.subheadline)
                 .fontWeight(.semibold)
-                .foregroundColor(.white)
+                .foregroundColor(Color(uiColor: .label))
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .background(Color(UIColor.niceGray).opacity(0.5))
