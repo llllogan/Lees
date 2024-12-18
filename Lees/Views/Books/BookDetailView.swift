@@ -43,6 +43,10 @@ struct BookDetailView: View {
     
     @State private var uploadedImage: UIImage? = nil
     
+    
+    
+    
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -71,6 +75,7 @@ struct BookDetailView: View {
                 
             }
         }
+        .background(Color(uiColor: .niceBackground))
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(
@@ -132,19 +137,19 @@ struct BookDetailView: View {
                     y:      .value("Category", "progress")
                 )
                 .foregroundStyle(Color.black.opacity(0.1))
-                .cornerRadius(10)
+                .cornerRadius(6)
                 
                 BarMark(
                     xStart: .value("Start", 0),
                     xEnd:   .value("End", 80),
                     y:      .value("Category", "progress")
                 )
-                .foregroundStyle(Color.orange)
-                .cornerRadius(10)
+                .foregroundStyle(Color.progressGreen)
+                .cornerRadius(6)
             }
             .chartXScale(domain: 0...100)
             .chartYAxis(Visibility.hidden)
-            .frame(maxHeight: 45)
+            .frame(maxHeight: 35)
 
     
         }
