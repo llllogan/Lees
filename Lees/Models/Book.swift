@@ -24,4 +24,18 @@ class Book {
         self.totalPages = totalPages
         self.imageData = imageData
     }
+    
+    var displayedImageData: Data {
+        if let data = imageData {
+            return data
+        } else {
+            // Attempt to load the default "DuneCover" image and convert it to Data
+            if let defaultImage = UIImage(named: "DuneCover"),
+               let defaultData = defaultImage.jpegData(compressionQuality: 1.0) {
+                return defaultData
+            }
+            // If the default image fails to load for some reason, return empty Data
+            return Data()
+        }
+    }
 }

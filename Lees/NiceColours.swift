@@ -7,6 +7,8 @@
 
 import SwiftUI
 import SwiftData
+import CoreImage
+import CoreImage.CIFilterBuiltins
 
 extension UIColor {
     static let niceGray = UIColor { traitCollection in
@@ -44,20 +46,48 @@ extension Color {
 
 
 
-#Preview {
+func averageBrightness(from image: UIImage?) -> CGFloat {
+    guard let image = image,
+          let ciImage = CIImage(image: image) else { return 1.0 } // assume bright if no image
     
-    let mockBook = Book(title: "Dune", author: "Frank Herbert", totalPages: 105)
-    let mockReadingSession = ReadingSession(date: Date(), startPage: 0, book: mockBook)
+    let extent = ciImage.extent
+    let filter = CIFilter.areaAverage()
+    filter.inputImage = ciImage
+    filter.extent = extent
+
+    let context = CIContext()
+    guard let outputImage = filter.outputImage else { return 1.0 }
     
-    let schema = Schema([Book.self, ReadingSession.self])
-    let container = try! ModelContainer(for: schema)
+    var bitmap = [UInt8](repeating: 0, count: 4)
+    context.render(outputImage,
+                   toBitmap: &bitmap,
+                   rowBytes: 4,
+                   bounds: CGRect(x: 0, y: 0, width: 1, height: 1),
+                   format: .RGBA8,
+                   colorSpace: nil)
     
-    container.mainContext.insert(mockBook)
-    container.mainContext.insert(mockReadingSession)
-    try! container.mainContext.save()
-            
-    return NavigationStack {
-        BookDetailView(book: mockBook)
-            .modelContainer(container)
+    let r = CGFloat(bitmap[0]) / 255.0
+    let g = CGFloat(bitmap[1]) / 255.0
+    let b = CGFloat(bitmap[2]) / 255.0
+    
+    // Simple approximation: average of RGB
+    return (r + g + b) / 3.0
+}
+
+
+struct DynamicForegroundModifier: ViewModifier {
+    let uiImage: UIImage?
+    
+    func body(content: Content) -> some View {
+        let brightness = averageBrightness(from: uiImage)
+        let textColor: Color = brightness < 0.5 ? .white : .black
+        
+        return content.foregroundColor(textColor)
+    }
+}
+
+extension View {
+    func dynamicForeground(uiImage: UIImage?) -> some View {
+        self.modifier(DynamicForegroundModifier(uiImage: uiImage))
     }
 }

@@ -48,6 +48,7 @@ struct BookListView: View {
         .sheet(isPresented: $showingAddBookSheet) {
             AddBookView()
         }
+        .background(Color(uiColor: .niceBackground))
     }
 }
 
@@ -56,49 +57,55 @@ struct BookGridItemView: View {
     let book: Book
     
     var body: some View {
-        
-        ZStack {
-            // If you want to compute a background color from the image:
-            if let uiImage = uiImageFromData(book.imageData),
-               let averageColor = uiImage.averageColor {
-                Color(averageColor)
-                    .ignoresSafeArea()
-            } else {
-                // Fallback color if no image or color extraction fails
-                Color.gray.opacity(0.2)
-            }
             
-            HStack {
-                VStack(alignment: .leading, spacing: 8) {
-                    if let uiImage = uiImageFromData(book.imageData) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 80)
-                            .cornerRadius(8)
-                    } else {
-                        // Placeholder image if none
-                        Image("DuneCover")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 80)
+        VStack(alignment: .leading, spacing: 8) {
+            
+            Text(book.title)
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundColor(.primary)
+            
+            Text(book.author)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            
+            Label("205", systemImage: "book.fill")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Label("34%", systemImage: "flag.pattern.checkered")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            Spacer()
+            
+            Button(action: {}) {
+                Text("Start Reading")
+                    .font(.subheadline)
+                    .padding()
+                    .frame(maxWidth: .infinity, maxHeight: 40)
+                    .background {
+                        // Create the background image inside the button
+                        if let uiImage = uiImageFromData(book.imageData) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFill()
+                                .blur(radius: 20) // adjust blur as desired
+                                .clipped()
+                        } else {
+                            Image("DuneCover")
+                                .resizable()
+                                .scaledToFill()
+                                .blur(radius: 20) // adjust blur as desired
+                                .clipped()
+                        }
                     }
-                    
-                    Text(book.title)
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                    
-                    Text(book.author)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-                .padding()
-                Spacer()
-
+                    .cornerRadius(12)
             }
+            .dynamicForeground(uiImage: uiImageFromData(book.displayedImageData))
         }
+        .padding()
+        .background(Color(UIColor.niceGray))
         .cornerRadius(12)
-        .shadow(radius: 4)
     }
 }
 
@@ -109,40 +116,6 @@ private func uiImageFromData(_ data: Data?) -> UIImage? {
     return UIImage(data: data)
 }
 
-extension UIImage {
-    var averageColor: UIColor? {
-        guard let cgImage = self.cgImage else { return nil }
-
-        let inputImage = CIImage(cgImage: cgImage)
-        let extent = inputImage.extent
-
-        // The CIAreaAverage filter returns the average color of the specified region.
-        guard let filter = CIFilter(name: "CIAreaAverage") else { return nil }
-        filter.setValue(inputImage, forKey: kCIInputImageKey)
-        filter.setValue(CIVector(cgRect: extent), forKey: kCIInputExtentKey)
-        
-        // Create a CIContext to render the output
-        let context = CIContext(options: nil)
-        guard let outputImage = filter.outputImage else { return nil }
-
-        // Render the output into a 1x1 bitmap
-        var bitmap = [UInt8](repeating: 0, count: 4)
-        context.render(outputImage,
-                       toBitmap: &bitmap,
-                       rowBytes: 4,
-                       bounds: CGRect(x: 0, y: 0, width: 1, height: 1),
-                       format: .RGBA8,
-                       colorSpace: CGColorSpaceCreateDeviceRGB())
-
-        // Convert the RGBA values to a UIColor
-        return UIColor(
-            red: CGFloat(bitmap[0]) / 255.0,
-            green: CGFloat(bitmap[1]) / 255.0,
-            blue: CGFloat(bitmap[2]) / 255.0,
-            alpha: CGFloat(bitmap[3]) / 255.0
-        )
-    }
-}
 
 #Preview {
     
