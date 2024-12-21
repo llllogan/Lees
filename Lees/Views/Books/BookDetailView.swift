@@ -45,33 +45,28 @@ struct BookDetailView: View {
     
     
     
-    
-    
     var body: some View {
+        
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 
                 topSection
                 
-                Section {
-                    
-                    progressDisplay
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color(UIColor.niceGray))
-                        .cornerRadius(16)
-                    
-                    
-                    
-                    Text("Reading Sessions")
-                        .font(.headline)
-                    
-                    ForEach(readingSessions) { session in
-                        let message: String = session.endPage == nil ? "Reading..." : "\(session.startPage) - \(session.endPage!)"
-                        Text("\(session.date, style: .date): \(message)")
-                    }
-                }
-                .padding(.horizontal)
+                sectionForCurrentSession
+                    .background(Color(UIColor.niceGray))
+                    .cornerRadius(16)
+                    .padding(.horizontal)
+                
+                progressDisplay
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color(UIColor.niceGray))
+                    .cornerRadius(16)
+                    .padding(.horizontal)
+
+                
+                readingSessionsSection
+                    .padding(.horizontal)
                 
             }
         }
@@ -114,6 +109,48 @@ struct BookDetailView: View {
         }
     }
     
+    
+    private var sectionForCurrentSession: some View {
+
+        HStack {
+            VStack(alignment: .leading) {
+                Text("Reading Session")
+                    .font(.title3)
+                    .fontWeight(.bold)
+                Spacer()
+                Label("\(formattedElapsedTime)", systemImage: "clock")
+                Spacer()
+                Text("Starting on page \(currentSession?.startPage ?? nextSessionStartPage)")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            
+            // Right side: Two buttons (Play/Pause and Stop)
+            HStack {
+                // Play/Pause button
+                Button(action: togglePlayPause) {
+                    Image(systemName: isSessionActive ? "pause.fill" : "play.fill")
+                        .frame(width: 44, height: 44)
+                        .foregroundColor(.white)
+                        .background(Color.secondary)
+                        .cornerRadius(8)
+                }
+                
+                // Stop button
+                Button(action: stopSession) {
+                    Image(systemName: "stop.fill")
+                        .frame(width: 44, height: 44)
+                        .foregroundColor(.white)
+                        .background(Color.red)
+                        .cornerRadius(8)
+                }
+            }
+        }
+        .padding()
+    }
+    
+    
     private var progressDisplay: some View {
         
         VStack {
@@ -150,51 +187,25 @@ struct BookDetailView: View {
             .chartXScale(domain: 0...100)
             .chartYAxis(Visibility.hidden)
             .frame(maxHeight: 35)
-
-    
         }
-        
     }
-
-
     
     
-    private var sectionForCurrentSession: some View {
+    
+    private var readingSessionsSection: some View {
+        
         Section {
-            HStack {
-                // Left side: Session info texts
-                VStack(alignment: .leading) {
-                    Text("Reading session time: \(formattedElapsedTime)")
-                        .font(.headline)
-                    Text("Starting on page \(currentSession?.startPage ?? nextSessionStartPage)")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                
-                // Right side: Two buttons (Play/Pause and Stop)
-                HStack {
-                    // Play/Pause button
-                    Button(action: togglePlayPause) {
-                        Image(systemName: isSessionActive ? "pause.fill" : "play.fill")
-                            .frame(width: 44, height: 44)
-                            .foregroundColor(.white)
-                            .background(Color.blue)
-                            .cornerRadius(8)
-                    }
-                    
-                    // Stop button
-                    Button(action: stopSession) {
-                        Image(systemName: "stop.fill")
-                            .frame(width: 44, height: 44)
-                            .foregroundColor(.white)
-                            .background(Color.red)
-                            .cornerRadius(8)
-                    }
-                }
+            Text("Reading Sessions")
+                .font(.headline)
+                .foregroundColor(.secondary)
+            
+            ForEach(readingSessions) { session in
+                let message: String = session.endPage == nil ? "Reading..." : "\(session.startPage) - \(session.endPage!)"
+                Text("\(session.date, style: .date): \(message)")
             }
         }
     }
+
     
     
     private var topSection: some View {
@@ -220,10 +231,10 @@ struct BookDetailView: View {
                     Text(book.title)
                         .font(.largeTitle)
                         .fontWeight(.bold)
-                        .foregroundColor(Color(uiColor: .label))
+                        .dynamicForeground(uiImage: uiImageFromData(book.displayedImageData))
                     
                     Text("\(book.author)")
-                        .foregroundColor(Color(uiColor: .label))
+                        .dynamicForeground(uiImage: uiImageFromData(book.displayedImageData))
                 }
                 
                 Spacer()
@@ -242,6 +253,15 @@ struct BookDetailView: View {
             .padding()
         }
     }
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     private var nextSessionStartPage: Int {
         let maxEndPage = readingSessions.compactMap { $0.endPage }.max() ?? 0

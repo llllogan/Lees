@@ -14,14 +14,16 @@ class Book {
     var title: String
     var author: String
     var totalPages: Int
+    var currentPage: Int
     
     var imageData: Data?
     
-    init(title: String, author: String, totalPages: Int, imageData: Data? = nil) {
+    init(title: String, author: String, totalPages: Int, currentPage: Int = 0 , imageData: Data? = nil) {
         self.id = UUID()
         self.title = title
         self.author = author
         self.totalPages = totalPages
+        self.currentPage = currentPage
         self.imageData = imageData
     }
     
@@ -37,5 +39,11 @@ class Book {
             // If the default image fails to load for some reason, return empty Data
             return Data()
         }
+    }
+    
+    var progress: Double {
+        let totalPages = Double(self.totalPages)
+        let currentPage = Double(self.currentPage)
+        return currentPage / totalPages
     }
 }

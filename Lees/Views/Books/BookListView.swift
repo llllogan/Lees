@@ -111,7 +111,7 @@ struct BookGridItemView: View {
 
 
 
-private func uiImageFromData(_ data: Data?) -> UIImage? {
+func uiImageFromData(_ data: Data?) -> UIImage? {
     guard let data = data else { return nil }
     return UIImage(data: data)
 }
