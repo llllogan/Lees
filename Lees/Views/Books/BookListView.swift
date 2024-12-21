@@ -69,10 +69,10 @@ struct BookGridItemView: View {
                 .font(.subheadline)
                 .foregroundColor(.secondary)
             
-            Label("205", systemImage: "book.fill")
+            Label("\(book.currentPage ?? 0)", systemImage: "book.fill")
                 .font(.caption)
                 .foregroundColor(.secondary)
-            Label("34%", systemImage: "flag.pattern.checkered")
+            Label("\(book.progress)%", systemImage: "flag.pattern.checkered")
                 .font(.caption)
                 .foregroundColor(.secondary)
             

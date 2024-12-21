@@ -17,15 +17,24 @@ struct BookDetailView: View {
     @Query var fetchedBooks: [Book]
     @Query var fetchedReadingSessions: [ReadingSession]
     
+    // MARK: - State
     @State private var showingEditBookSheet = false
-    @State private var currentSession: ReadingSession?
-    @State private var isSessionActive = false // Tracks if play/pause state
     @State private var showingEndPagePrompt = false
+    
     @State private var endPageText = ""
-    @State private var elapsedTime: TimeInterval = 0 // In seconds, update with a timer
+    
+    /// The current active session
+    @State private var currentSession: ReadingSession?
+    
+    /// Whether the current session is paused (true) or active (false)
+    @State private var pausedSession = true
+    
+    /// Used to trigger frequent UI updates for our session time display
+    @State private var now = Date()
+    
+    /// Our repeating timer; invalidated when session is stopped
     @State private var timer: Timer? = nil
     
-    @State private var progress: Double = 0.5
     
     init(book: Book) {
         self.bookId = book.id
@@ -52,10 +61,12 @@ struct BookDetailView: View {
                 
                 topSection
                 
-                sectionForCurrentSession
-                    .background(Color(UIColor.niceGray))
-                    .cornerRadius(16)
-                    .padding(.horizontal)
+                if ((currentSession) != nil) {
+                    sectionForCurrentSession
+                        .background(Color(UIColor.niceGray))
+                        .cornerRadius(16)
+                        .padding(.horizontal)
+                }
                 
                 progressDisplay
                     .frame(maxWidth: .infinity)
@@ -63,6 +74,8 @@ struct BookDetailView: View {
                     .background(Color(UIColor.niceGray))
                     .cornerRadius(16)
                     .padding(.horizontal)
+                
+                Spacer()
 
                 
                 readingSessionsSection
@@ -109,16 +122,79 @@ struct BookDetailView: View {
         }
     }
     
+    // MARK: - Top Section
+    private var topSection: some View {
+        ZStack(alignment: .bottomLeading) {
+            
+            if let data = book.imageData, let uiImage = UIImage(data: data) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity, maxHeight: 400, alignment: .top)
+                    .clipped()
+            } else {
+                // Fallback image from assets
+                Image("DuneCover")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity, maxHeight: 400, alignment: .top)
+                    .clipped()
+            }
+            
+            HStack(alignment: .bottom) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(book.title)
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .dynamicForeground(uiImage: uiImageFromData(book.displayedImageData))
+                    
+                    Text("\(book.author)")
+                        .fontWeight(.semibold)
+                        .dynamicForeground(uiImage: uiImageFromData(book.displayedImageData))
+                }
+                
+                Spacer()
+                Button(action: {
+                    currentSession = ReadingSession(
+                        date: Date(),
+                        startPage: nextSessionStartPage,
+                        book: book
+                    )
+                    
+                    pausedSession = false
+                    
+                    startTimer()
+                }) {
+                    Text("Start Reading")
+                    Image(systemName: "book.fill")
+                }
+                .font(.subheadline)
+                .foregroundColor(Color(uiColor: .label))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color(UIColor.niceGray).opacity(0.5))
+                .clipShape(Capsule())
+            }
+            .padding()
+        }
+    }
     
+    
+    
+    // MARK: - Current Session Section
     private var sectionForCurrentSession: some View {
 
         HStack {
             VStack(alignment: .leading) {
                 Text("Reading Session")
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Label("\(formattedElapsedTime)", systemImage: "record.circle")
+                    .symbolEffect(.pulse.byLayer, options: .repeat(.continuous))
                     .font(.title3)
                     .fontWeight(.bold)
-                Spacer()
-                Label("\(formattedElapsedTime)", systemImage: "clock")
                 Spacer()
                 Text("Starting on page \(currentSession?.startPage ?? nextSessionStartPage)")
                     .font(.subheadline)
@@ -128,16 +204,14 @@ struct BookDetailView: View {
             
             // Right side: Two buttons (Play/Pause and Stop)
             HStack {
-                // Play/Pause button
                 Button(action: togglePlayPause) {
-                    Image(systemName: isSessionActive ? "pause.fill" : "play.fill")
+                    Image(systemName: pausedSession ? "play.fill" : "pause.fill")
                         .frame(width: 44, height: 44)
                         .foregroundColor(.white)
                         .background(Color.secondary)
                         .cornerRadius(8)
                 }
                 
-                // Stop button
                 Button(action: stopSession) {
                     Image(systemName: "stop.fill")
                         .frame(width: 44, height: 44)
@@ -151,6 +225,7 @@ struct BookDetailView: View {
     }
     
     
+    // MARK: - Progress Display
     private var progressDisplay: some View {
         
         VStack {
@@ -178,7 +253,7 @@ struct BookDetailView: View {
                 
                 BarMark(
                     xStart: .value("Start", 0),
-                    xEnd:   .value("End", 80),
+                    xEnd:   .value("End", book.progress),
                     y:      .value("Category", "progress")
                 )
                 .foregroundStyle(Color.progressGreen)
@@ -205,62 +280,9 @@ struct BookDetailView: View {
             }
         }
     }
-
     
     
-    private var topSection: some View {
-        ZStack(alignment: .bottomLeading) {
-            
-            if let data = book.imageData, let uiImage = UIImage(data: data) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(maxWidth: .infinity, maxHeight: 400, alignment: .top)
-                    .clipped()
-            } else {
-                // Fallback image from assets
-                Image("DuneCover")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(maxWidth: .infinity, maxHeight: 400, alignment: .top)
-                    .clipped()
-            }
-            
-            HStack(alignment: .bottom) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(book.title)
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .dynamicForeground(uiImage: uiImageFromData(book.displayedImageData))
-                    
-                    Text("\(book.author)")
-                        .dynamicForeground(uiImage: uiImageFromData(book.displayedImageData))
-                }
-                
-                Spacer()
-                Button(action: {}, label: {
-                    Text("Start Reading")
-                    Image(systemName: "book.fill")
-                })
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundColor(Color(uiColor: .label))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(Color(UIColor.niceGray).opacity(0.5))
-                .clipShape(Capsule())
-            }
-            .padding()
-        }
-    }
-    
-    
-    
-    
-    
-    
-    
-    
+    // MARK: - Helpers
     
     
     private var nextSessionStartPage: Int {
@@ -268,88 +290,81 @@ struct BookDetailView: View {
         return maxEndPage + 1
     }
     
+    
     private var formattedElapsedTime: String {
-        let minutes = Int(elapsedTime) / 60
-        let seconds = Int(elapsedTime) % 60
-        let milliseconds = Int((elapsedTime - floor(elapsedTime)) * 1000)
+        guard let session = currentSession else {
+            return "00:00.000"
+        }
+        // Use 'now' to compute a live difference
+        let diff = now.timeIntervalSince(session.date)
+        let minutes = Int(diff) / 60
+        let seconds = Int(diff) % 60
+        let milliseconds = Int((diff - floor(diff)) * 1000)
         return String(format: "%02d:%02d.%03d", minutes, seconds, milliseconds)
     }
     
-    private func togglePlayPause() {
-        if currentSession == nil {
-            // Start a new session
-            startReadingSession()
-        } else {
-            // Toggle pause
-            isSessionActive.toggle()
-            if isSessionActive {
-                startTimer()
-            } else {
-                stopTimer()
-            }
-        }
-    }
+    // MARK: - Helpers
     
-    private func stopSession() {
-        guard currentSession != nil else { return }
-        // Prompt user for ending page
-        endPageText = ""
-        showingEndPagePrompt = true
-    }
-    
-    private func finalizeSession() {
-        defer { showingEndPagePrompt = false }
-        guard let session = currentSession,
-              let endPage = Int(endPageText), endPage >= session.startPage else {
-            return
-        }
-        
-        // Update session with endPage and endDate
-        session.endPage = endPage
-        session.endDate = Date()
-        
-        // Save changes
-        do {
-            stopTimer()
-            currentSession = nil
-            isSessionActive = false
-            try context.save()
-        } catch {
-            print("Error saving ended session: \(error)")
-        }
-    }
-    
-    private func startReadingSession() {
-        let newStartPage = nextSessionStartPage
-        let newSession = ReadingSession(
-            date: Date(),
-            startPage: newStartPage,
-            book: book
-        )
-        print(book.self)
-        
-        context.insert(newSession)
-        do {
-            try context.save()
-            currentSession = newSession
-            isSessionActive = true
-            startTimer()
-        } catch {
-            print("Error saving new session: \(error)")
-        }
+    /// Indicates if a session is active (not paused)
+    private var isSessionActive: Bool {
+        !pausedSession && currentSession != nil
     }
     
     private func startTimer() {
-        stopTimer()
-        timer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { _ in
-            elapsedTime += 0.01
+        // Clear any old timer
+        timer?.invalidate()
+        
+        // Fire approximately every 0.1 seconds for smooth time display
+        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
+            // Only update 'now' if not paused
+            guard !pausedSession else { return }
+            now = Date()
         }
     }
     
-    private func stopTimer() {
+    /// Toggles between paused and unpaused states
+    private func togglePlayPause() {
+        pausedSession.toggle()
+        // If unpausing, ensure timer is running
+        if !pausedSession {
+            startTimer()
+        }
+    }
+    
+    /// Stop session entirely, prompting user for end page
+    private func stopSession() {
+        // If there's a current session, user must enter an end page
+        if currentSession != nil {
+            showingEndPagePrompt = true
+        }
+    }
+    
+    /// Finalizes the current session by setting an endPage, saving it to the model, etc.
+    private func finalizeSession() {
+        guard let currentSession else { return }
+        
+        // Attempt to parse user input
+        let endingPage = Int(endPageText) ?? currentSession.startPage
+        
+        // Stop the timer
         timer?.invalidate()
         timer = nil
+        pausedSession = true
+        
+        // Update the session’s end page
+        currentSession.endPage = endingPage
+        do {
+            try context.save()
+        } catch {
+            print("Failed to save endPage: \(error)")
+        }
+        
+        // Clear the session & prompt
+        self.currentSession = nil
+        self.endPageText = ""
+        self.showingEndPagePrompt = false
     }
+    
 }
 
 

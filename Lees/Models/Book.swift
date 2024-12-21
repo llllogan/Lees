@@ -14,17 +14,18 @@ class Book {
     var title: String
     var author: String
     var totalPages: Int
-    var currentPage: Int
+    
+    var currentPage: Int?
     
     var imageData: Data?
     
-    init(title: String, author: String, totalPages: Int, currentPage: Int = 0 , imageData: Data? = nil) {
+    init(title: String, author: String, totalPages: Int, imageData: Data? = nil, currentPage: Int? = nil) {
         self.id = UUID()
         self.title = title
         self.author = author
         self.totalPages = totalPages
-        self.currentPage = currentPage
         self.imageData = imageData
+        self.currentPage = currentPage
     }
     
     var displayedImageData: Data {
@@ -41,9 +42,10 @@ class Book {
         }
     }
     
-    var progress: Double {
-        let totalPages = Double(self.totalPages)
-        let currentPage = Double(self.currentPage)
-        return currentPage / totalPages
+    var progress: Int {
+        guard totalPages > 0 else { return 0 }
+        
+        let ratio = Double(currentPage ?? 0) / Double(totalPages)
+        return Int(ceil(ratio))
     }
 }
