@@ -12,48 +12,38 @@ import Charts
 struct BookDetailView: View {
     @Environment(\.modelContext) private var context
     
-    let bookId: UUID
+    /// The Book you tapped on from your main list.
+    @Bindable var book: Book
     
-    @Query var fetchedBooks: [Book]
-    @Query var fetchedReadingSessions: [ReadingSession]
+    /// A query to retrieve all the reading sessions for this `book`.
+    @Query private var allReadingSessions: [ReadingSession]
     
-    // MARK: - State
+    private var readingSessions: [ReadingSession] {
+        allReadingSessions.filter { $0.book.id == book.id }
+    }
+    
+    // MARK: - UI state properties
     @State private var showingEditBookSheet = false
     @State private var showingEndPagePrompt = false
     
     @State private var endPageText = ""
     
-    /// The current active session
+    // Active reading session
     @State private var currentSession: ReadingSession?
-    
-    /// Whether the current session is paused (true) or active (false)
     @State private var pausedSession = true
-    
-    /// Used to trigger frequent UI updates for our session time display
     @State private var now = Date()
-    
-    /// Our repeating timer; invalidated when session is stopped
     @State private var timer: Timer? = nil
-    
-    
-    init(book: Book) {
-        self.bookId = book.id
-        _fetchedBooks = Query(filter: #Predicate<Book> { $0.id == bookId })
-        _fetchedReadingSessions = Query(filter: #Predicate<ReadingSession> { $0.book.id == bookId })
-    }
-    
-    private var book: Book {
-        fetchedBooks.first!
-    }
-    
-    private var readingSessions: [ReadingSession] {
-        fetchedReadingSessions
-    }
     
     @State private var uploadedImage: UIImage? = nil
     
     
+    // MARK: - Init
+    init(book: Book) {
+        self.book = book
+    }
     
+    
+    // MARK: - Main View
     var body: some View {
         
         ScrollView {
@@ -81,6 +71,17 @@ struct BookDetailView: View {
                 readingSessionsSection
                     .padding(.horizontal)
                 
+                Section {
+                    Text(book.title)
+                    Text(book.author)
+                    Text(String(book.totalPages))
+                    Text(String(book.progress))
+                    Text(String(book.currentPage ?? 999))
+                    Text(String(readingSessions.count))
+                    Text(String(allReadingSessions.count))
+                }
+                .padding()
+    
             }
         }
         .background(Color(uiColor: .niceBackground))
@@ -160,6 +161,8 @@ struct BookDetailView: View {
                         startPage: nextSessionStartPage,
                         book: book
                     )
+                    
+                    print(currentSession!.startPage)
                     
                     pausedSession = false
                     
@@ -299,11 +302,8 @@ struct BookDetailView: View {
         let diff = now.timeIntervalSince(session.date)
         let minutes = Int(diff) / 60
         let seconds = Int(diff) % 60
-        let milliseconds = Int((diff - floor(diff)) * 1000)
-        return String(format: "%02d:%02d.%03d", minutes, seconds, milliseconds)
+        return String(format: "%02d:%02d", minutes, seconds)
     }
-    
-    // MARK: - Helpers
     
     /// Indicates if a session is active (not paused)
     private var isSessionActive: Bool {
@@ -343,23 +343,23 @@ struct BookDetailView: View {
     private func finalizeSession() {
         guard let currentSession else { return }
         
-        // Attempt to parse user input
         let endingPage = Int(endPageText) ?? currentSession.startPage
+        book.currentPage = endingPage // Will sync to SwiftData automatically
         
-        // Stop the timer
+        currentSession.endPage = endingPage
+        currentSession.endDate = Date()
+        
+        context.insert(currentSession)
+        
+        do {
+            try context.save()  // Force a save if you want changes persisted immediately
+        } catch {
+            print("Failed to save session: \(error)")
+        }
+        
         timer?.invalidate()
         timer = nil
         pausedSession = true
-        
-        // Update the session’s end page
-        currentSession.endPage = endingPage
-        do {
-            try context.save()
-        } catch {
-            print("Failed to save endPage: \(error)")
-        }
-        
-        // Clear the session & prompt
         self.currentSession = nil
         self.endPageText = ""
         self.showingEndPagePrompt = false
