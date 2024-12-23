@@ -10,11 +10,12 @@ import SwiftData
 
 struct BookListView: View {
     @Environment(\.modelContext) private var context
+    
     @Query private var books: [Book]
 
     @State private var showingAddBookSheet = false
-
     
+
     let columns = [
         GridItem(.flexible(), spacing: 16),
         GridItem(.flexible(), spacing: 16)
@@ -55,6 +56,7 @@ struct BookListView: View {
 struct BookGridItemView: View {
     
     let book: Book
+
     
     var body: some View {
             

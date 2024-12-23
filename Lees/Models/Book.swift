@@ -44,8 +44,10 @@ class Book {
     
     var progress: Int {
         guard totalPages > 0 else { return 0 }
+        guard currentPage != nil else { return 0 }
         
-        let ratio = Double(currentPage ?? 0) / Double(totalPages)
-        return Int(ceil(ratio))
+        let doubleValue = Double(self.currentPage!) / Double(self.totalPages)
+        
+        return Int(doubleValue * 100)
     }
 }

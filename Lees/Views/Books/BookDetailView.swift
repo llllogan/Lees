@@ -56,6 +56,7 @@ struct BookDetailView: View {
                         .background(Color(UIColor.niceGray))
                         .cornerRadius(16)
                         .padding(.horizontal)
+                        .transition(.opacity)
                 }
                 
                 progressDisplay
@@ -70,20 +71,10 @@ struct BookDetailView: View {
                 
                 readingSessionsSection
                     .padding(.horizontal)
-                
-                Section {
-                    Text(book.title)
-                    Text(book.author)
-                    Text(String(book.totalPages))
-                    Text(String(book.progress))
-                    Text(String(book.currentPage ?? 999))
-                    Text(String(readingSessions.count))
-                    Text(String(allReadingSessions.count))
-                }
-                .padding()
     
             }
         }
+        .animation(.default, value: currentSession)
         .background(Color(uiColor: .niceBackground))
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -149,7 +140,7 @@ struct BookDetailView: View {
                         .fontWeight(.bold)
                         .dynamicForeground(uiImage: uiImageFromData(book.displayedImageData))
                     
-                    Text("\(book.author)")
+                    Text(book.author)
                         .fontWeight(.semibold)
                         .dynamicForeground(uiImage: uiImageFromData(book.displayedImageData))
                 }
@@ -194,10 +185,16 @@ struct BookDetailView: View {
                     .fontWeight(.bold)
                     .foregroundColor(.secondary)
                 Spacer()
-                Label("\(formattedElapsedTime)", systemImage: "record.circle")
-                    .symbolEffect(.pulse.byLayer, options: .repeat(.continuous))
-                    .font(.title3)
-                    .fontWeight(.bold)
+                Label {
+                    Text(formattedElapsedTime)
+                        .contentTransition(.numericText())
+                        .animation(.default, value: formattedElapsedTime)
+                        .font(.title3)
+                        .fontWeight(.bold)
+                } icon: {
+                    Image(systemName: "record.circle")
+                        // .symbolEffect(.pulse.byLayer, options: .repeat(.continuous))
+                }
                 Spacer()
                 Text("Starting on page \(currentSession?.startPage ?? nextSessionStartPage)")
                     .font(.subheadline)
@@ -344,7 +341,7 @@ struct BookDetailView: View {
         guard let currentSession else { return }
         
         let endingPage = Int(endPageText) ?? currentSession.startPage
-        book.currentPage = endingPage // Will sync to SwiftData automatically
+        book.currentPage = endingPage
         
         currentSession.endPage = endingPage
         currentSession.endDate = Date()
