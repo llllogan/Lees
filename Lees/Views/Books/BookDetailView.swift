@@ -269,8 +269,12 @@ struct BookDetailView: View {
 
                 Spacer()
                 
-                Button("show breakdown") {
+                Button(action: {
                     showingEditBookSheet = true
+                }) {
+                    Image(systemName: "eye.slash")
+                    Text("Breakdown")
+                        .font(.callout)
                 }
             }
             
@@ -302,9 +306,18 @@ struct BookDetailView: View {
     private var readingSessionsSection: some View {
         
         Section {
-            Text("Reading Sessions")
-                .font(.callout)
-                .foregroundColor(.secondary)
+            HStack {
+                Text("Reading Sessions")
+                    .font(.callout)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Button(action: {
+                    
+                }){
+                    Text("View More")
+                        .font(.callout)
+                }
+            }
             VStack {
                 ForEach(groupedReadingSessions, id: \.date) { group in
                     VStack(alignment: .leading, spacing: 0) {
