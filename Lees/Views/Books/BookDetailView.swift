@@ -11,6 +11,7 @@ import Charts
 
 struct BookDetailView: View {
     @Environment(\.modelContext) private var context
+    @Environment(\.dismiss) private var dismiss
     
     /// The Book you tapped on from your main list.
     @Bindable var book: Book
@@ -20,6 +21,19 @@ struct BookDetailView: View {
     
     private var readingSessions: [ReadingSession] {
         allReadingSessions.filter { $0.book.id == book.id }
+    }
+    
+    private var groupedReadingSessions: [(date: Date, sessions: [ReadingSession])] {
+        
+        let grouped = Dictionary(grouping: readingSessions) { session in
+            Calendar.current.startOfDay(for: session.date)
+        }
+        
+        return grouped
+            .map { (key, value) in
+                (date: key, sessions: value.sorted { $0.date > $1.date })
+            }
+            .sorted(by: { $0.date > $1.date })
     }
     
     // MARK: - UI state properties
@@ -35,6 +49,8 @@ struct BookDetailView: View {
     @State private var timer: Timer? = nil
     
     @State private var uploadedImage: UIImage? = nil
+    
+    @State private var showingDeleteConfirmation = false
     
     
     // MARK: - Init
@@ -78,12 +94,20 @@ struct BookDetailView: View {
         .background(Color(uiColor: .niceBackground))
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button(
-                    action: {},
-                    label: {
-                        Image(systemName: "ellipsis.circle")
+                Menu {
+                    Button("Edit Book") {
+                        showingEditBookSheet = true
                     }
-                )
+
+                    Button(role: .destructive) {
+                        showingDeleteConfirmation = true
+                    } label: {
+                        Text("Delete Book")
+                    }
+
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
             }
 
         }
@@ -111,6 +135,14 @@ struct BookDetailView: View {
                     }
                 }
             }
+        }
+        .alert("Delete Book?", isPresented: $showingDeleteConfirmation) {
+            Button("Delete", role: .destructive) {
+                deleteBook()
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("Are you sure you want to delete this book?")
         }
     }
     
@@ -266,28 +298,65 @@ struct BookDetailView: View {
     }
     
     
-    
+    // MARK: - Reading Sessions
     private var readingSessionsSection: some View {
         
         Section {
             Text("Reading Sessions")
-                .font(.headline)
+                .font(.callout)
                 .foregroundColor(.secondary)
-            
-            ForEach(readingSessions) { session in
-                let message: String = session.endPage == nil ? "Reading..." : "\(session.startPage) - \(session.endPage!)"
-                Text("\(session.date, style: .date): \(message)")
+            VStack {
+                ForEach(groupedReadingSessions, id: \.date) { group in
+                    VStack(alignment: .leading, spacing: 0) {
+                        
+                        // Date label at the top of the group (same background color)
+                        Text(group.date, style: .date)
+                            .font(.subheadline)
+                            .padding(.horizontal, 12)
+                            .padding(.top)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        
+                        VStack(spacing: 0) {
+                            ForEach(group.sessions) { session in
+                                HStack {
+                                    Text(session.date, style: .time)
+                                        .font(.headline)
+                                    Spacer()
+                                    Text("\(session.startPage) - \(session.endPage ?? session.startPage)")
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(12)
+                                
+                                if session != group.sessions.last {
+                                    Divider()
+                                }
+                            }
+                        }
+                    }
+                    .background(Color(UIColor.niceGray))
+                    .cornerRadius(12)
+                }
             }
+        }
+    }
+    // MARK: - Helpers
+    
+    
+    
+    private func deleteBook() {
+        context.delete(book)
+        do {
+            try context.save()
+            dismiss()
+        } catch {
+            print("Failed to delete book: \(error)")
         }
     }
     
     
-    // MARK: - Helpers
-    
-    
     private var nextSessionStartPage: Int {
         let maxEndPage = readingSessions.compactMap { $0.endPage }.max() ?? 0
-        return maxEndPage + 1
+        return maxEndPage
     }
     
     
@@ -369,12 +438,14 @@ struct BookDetailView: View {
     
     let mockBook = Book(title: "Dune", author: "Frank Herbert", totalPages: 105)
     let mockReadingSession = ReadingSession(date: Date(), startPage: 0, book: mockBook)
+    let mockReadingSession2 = ReadingSession(date: Date(), startPage: 10, book: mockBook)
     
     let schema = Schema([Book.self, ReadingSession.self])
     let container = try! ModelContainer(for: schema)
     
     container.mainContext.insert(mockBook)
     container.mainContext.insert(mockReadingSession)
+    container.mainContext.insert(mockReadingSession2)
     try! container.mainContext.save()
             
     return NavigationStack {

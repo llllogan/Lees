@@ -15,6 +15,12 @@ struct BookListView: View {
 
     @State private var showingAddBookSheet = false
     
+    @State private var selectedBookForEditing: Book?
+    @State private var showingEditBookSheet = false
+    
+    @State private var showingDeleteConfirmation = false
+    @State private var bookToDelete: Book? = nil
+    
 
     let columns = [
         GridItem(.flexible(), spacing: 16),
@@ -28,6 +34,19 @@ struct BookListView: View {
                     ForEach(books) { book in
                         NavigationLink(value: book) {
                             BookGridItemView(book: book)
+                        }
+                        .contextMenu {
+                            Button("Edit Book") {
+                                selectedBookForEditing = book
+                                showingEditBookSheet = true
+                            }
+
+                            Button(role: .destructive) {
+                                bookToDelete = book
+                                showingDeleteConfirmation = true
+                            } label: {
+                                Text("Delete Book")
+                            }
                         }
                     }
                 }
@@ -49,7 +68,35 @@ struct BookListView: View {
         .sheet(isPresented: $showingAddBookSheet) {
             AddBookView()
         }
+        .sheet(isPresented: $showingEditBookSheet) {
+            if let bookToEdit = selectedBookForEditing {
+                EditBookView(book: bookToEdit)
+            }
+        }
+        .alert("Delete Book?", isPresented: $showingDeleteConfirmation) {
+            Button("Delete", role: .destructive) {
+                if let book = bookToDelete {
+                    deleteBook(book)
+                }
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            if let book = bookToDelete {
+                Text("Are you sure you want to delete “\(book.title)”?")
+            } else {
+                Text("Are you sure you want to delete this book?")
+            }
+        }
         .background(Color(uiColor: .niceBackground))
+    }
+    
+    private func deleteBook(_ book: Book) {
+        context.delete(book)
+        do {
+            try context.save()
+        } catch {
+            print("Failed to delete book: \(error)")
+        }
     }
 }
 
@@ -66,10 +113,12 @@ struct BookGridItemView: View {
                 .font(.title2)
                 .fontWeight(.bold)
                 .foregroundColor(.primary)
+                .multilineTextAlignment(.leading)
             
             Text(book.author)
                 .font(.subheadline)
                 .foregroundColor(.secondary)
+                .multilineTextAlignment(.leading)
             
             Label("\(book.currentPage ?? 0)", systemImage: "book.fill")
                 .font(.caption)
@@ -112,7 +161,6 @@ struct BookGridItemView: View {
 }
 
 
-
 func uiImageFromData(_ data: Data?) -> UIImage? {
     guard let data = data else { return nil }
     return UIImage(data: data)
@@ -121,7 +169,7 @@ func uiImageFromData(_ data: Data?) -> UIImage? {
 
 #Preview {
     
-    let mockBook = Book(title: "Dune", author: "Frank Herbert", totalPages: 105)
+    let mockBook = Book(title: "Dunee onib onj", author: "Frank Herbert", totalPages: 105)
     
     let schema = Schema([Book.self, ReadingSession.self])
     let container = try! ModelContainer(for: schema)
