@@ -36,7 +36,7 @@ struct BookDetailView: View {
             .sorted(by: { $0.date > $1.date })
     }
     
-    // MARK: - UI state properties
+    
     @State private var showingEditBookSheet = false
     @State private var showingEndPagePrompt = false
     
@@ -188,6 +188,7 @@ struct BookDetailView: View {
                 
                 Spacer()
                 Button(action: {
+                    guard !isSessionActive else { return }
                     startReadingSession()
                 }) {
                     Text("Start Reading")
