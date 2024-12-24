@@ -13,10 +13,10 @@ struct BookDetailView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     
-    /// The Book you tapped on from your main list.
     @Bindable var book: Book
     
-    /// A query to retrieve all the reading sessions for this `book`.
+    var autoStartReadingSession: Bool = false
+    
     @Query private var allReadingSessions: [ReadingSession]
     
     private var readingSessions: [ReadingSession] {
@@ -42,7 +42,6 @@ struct BookDetailView: View {
     
     @State private var endPageText = ""
     
-    // Active reading session
     @State private var currentSession: ReadingSession?
     @State private var pausedSession = true
     @State private var now = Date()
@@ -52,10 +51,13 @@ struct BookDetailView: View {
     
     @State private var showingDeleteConfirmation = false
     
+    @State private var hasStartedSession = false
+    
     
     // MARK: - Init
-    init(book: Book) {
+    init(book: Book, autoStartReadingSession: Bool = false) {
         self.book = book
+        self.autoStartReadingSession = autoStartReadingSession
     }
     
     
@@ -91,6 +93,12 @@ struct BookDetailView: View {
             }
         }
         .animation(.default, value: currentSession)
+        .onAppear {
+            if autoStartReadingSession, !hasStartedSession {
+                startReadingSession()
+                hasStartedSession = true
+            }
+        }
         .background(Color(uiColor: .niceBackground))
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -146,6 +154,7 @@ struct BookDetailView: View {
         }
     }
     
+    
     // MARK: - Top Section
     private var topSection: some View {
         ZStack(alignment: .bottomLeading) {
@@ -179,17 +188,7 @@ struct BookDetailView: View {
                 
                 Spacer()
                 Button(action: {
-                    currentSession = ReadingSession(
-                        date: Date(),
-                        startPage: nextSessionStartPage,
-                        book: book
-                    )
-                    
-                    print(currentSession!.startPage)
-                    
-                    pausedSession = false
-                    
-                    startTimer()
+                    startReadingSession()
                 }) {
                     Text("Start Reading")
                     Image(systemName: "book.fill")
@@ -274,10 +273,10 @@ struct BookDetailView: View {
                 }) {
                     Image(systemName: "eye.slash")
                     Text("Breakdown")
-                        .font(.callout)
+                        .font(.subheadline)
                 }
             }
-            
+             
             Chart {
                 BarMark(
                     xStart: .value("Start", 0),
@@ -315,7 +314,7 @@ struct BookDetailView: View {
                     
                 }){
                     Text("View More")
-                        .font(.callout)
+                        .font(.subheadline)
                 }
             }
             VStack {
@@ -354,6 +353,20 @@ struct BookDetailView: View {
     }
     // MARK: - Helpers
     
+    
+    private func startReadingSession() {
+        currentSession = ReadingSession(
+            date: Date(),
+            startPage: nextSessionStartPage,
+            book: book
+        )
+        
+        print(currentSession!.startPage)
+        
+        pausedSession = false
+        
+        startTimer()
+    }
     
     
     private func deleteBook() {

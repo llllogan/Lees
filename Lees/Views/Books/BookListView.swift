@@ -106,6 +106,8 @@ struct BookGridItemView: View {
 
     
     var body: some View {
+        
+        @State var navigateToDetail = false
             
         VStack(alignment: .leading, spacing: 8) {
             
@@ -129,30 +131,35 @@ struct BookGridItemView: View {
             
             Spacer()
             
-            Button(action: {}) {
-                Text("Start Reading")
-                    .font(.subheadline)
-                    .padding()
-                    .frame(maxWidth: .infinity, maxHeight: 40)
-                    .background {
-                        // Create the background image inside the button
-                        if let uiImage = uiImageFromData(book.imageData) {
-                            Image(uiImage: uiImage)
-                                .resizable()
-                                .scaledToFill()
-                                .blur(radius: 20) // adjust blur as desired
-                                .clipped()
-                        } else {
-                            Image("DuneCover")
-                                .resizable()
-                                .scaledToFill()
-                                .blur(radius: 20) // adjust blur as desired
-                                .clipped()
+            NavigationLink(
+                destination: {
+                    BookDetailView(book: book, autoStartReadingSession: true)
+                },
+                label: {
+                    Text("Start Reading")
+                        .font(.subheadline)
+                        .padding()
+                        .frame(maxWidth: .infinity, maxHeight: 40)
+                        .background {
+                            // Create the background image inside the button
+                            if let uiImage = uiImageFromData(book.imageData) {
+                                Image(uiImage: uiImage)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .blur(radius: 20) // adjust blur as desired
+                                    .clipped()
+                            } else {
+                                Image("DuneCover")
+                                    .resizable()
+                                    .scaledToFill()
+                                    .blur(radius: 20) // adjust blur as desired
+                                    .clipped()
+                            }
                         }
-                    }
-                    .cornerRadius(12)
-            }
-            .dynamicForeground(uiImage: uiImageFromData(book.displayedImageData))
+                        .cornerRadius(12)
+                        .dynamicForeground(uiImage: uiImageFromData(book.displayedImageData))
+                }
+            )
         }
         .padding()
         .background(Color(UIColor.niceGray))
