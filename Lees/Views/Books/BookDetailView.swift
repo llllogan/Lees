@@ -53,6 +53,8 @@ struct BookDetailView: View {
     
     @State private var hasStartedSession = false
     
+    @State private var showDetailedChart = false
+    
     
     // MARK: - Init
     init(book: Book, autoStartReadingSession: Bool = false) {
@@ -270,42 +272,101 @@ struct BookDetailView: View {
                 Spacer()
                 
                 Button(action: {
-                    showingEditBookSheet = true
+                    withAnimation {
+                        showDetailedChart.toggle()
+                    }
                 }) {
-                    Image(systemName: "eye.slash")
+                    Image(systemName: showDetailedChart ? "eye" : "eye.slash")
                     Text("Breakdown")
                         .font(.subheadline)
                 }
             }
+            
+            if (showDetailedChart) {
+                progressChartDetail
+                    .transition(.identity)
+            } else {
+                progressChart
+                    .transition(.identity)
+            }
              
-            Chart {
-                BarMark(
-                    xStart: .value("Start", 0),
-                    xEnd:   .value("End", 100),
-                    y:      .value("Category", "progress")
-                )
-                .foregroundStyle(Color.black.opacity(0.1))
-                .cornerRadius(6)
-                
-                BarMark(
-                    xStart: .value("Start", 0),
-                    xEnd:   .value("End", book.progress),
-                    y:      .value("Category", "progress")
+            
+        }
+    }
+    
+    private var progressChart: some View {
+        Chart {
+            BarMark(
+                xStart: .value("Start", 0),
+                xEnd:   .value("End", 100),
+                y:      .value("Category", "progress")
+            )
+            .foregroundStyle(Color.black.opacity(0.1))
+            .cornerRadius(6)
+            
+            BarMark(
+                xStart: .value("Start", 0),
+                xEnd:   .value("End", book.progress),
+                y:      .value("Category", "progress")
+            )
+            .foregroundStyle(Color.progressGreen)
+            .cornerRadius(6)
+        }
+        .chartXScale(domain: 0...100)
+        .chartYAxis(Visibility.hidden)
+        .frame(maxHeight: 35)
+    }
+    
+    
+    private var progressChartDetail: some View {
+        Chart {
+            if let firstDate = readingSessions.first?.date {
+                LineMark(
+                    x: .value("Start Date", firstDate),
+                    y: .value("End Page", 0)
                 )
                 .foregroundStyle(Color.progressGreen)
-                .cornerRadius(6)
+                .interpolationMethod(.catmullRom)
             }
-            .chartXScale(domain: 0...100)
-            .chartYAxis(Visibility.hidden)
-            .frame(maxHeight: 35)
+            ForEach(readingSessions) { session in
+                LineMark(
+                    x: .value(
+                        "Start Date",
+                        session.date,
+                        unit: .minute
+                    ),
+                    y: .value("End Page", session.endPage ?? session.startPage)
+                )
+                .foregroundStyle(Color.progressGreen)
+                .interpolationMethod(.catmullRom)
+            }
         }
+        .chartXAxis {
+            AxisMarks(position: .bottom, values: .stride(by: .day)) { value in
+                AxisGridLine()
+                AxisValueLabel() {
+                    if let dateValue = value.as(Date.self) {
+                        Text(dateValue, format: .dateTime.weekday(.abbreviated))
+                            .foregroundColor(.secondary)
+                    } else {
+                        Text("")
+                    }
+                }
+            }
+        }
+        .chartYAxis {
+            AxisMarks(position: .leading, values: .automatic) {
+                AxisValueLabel()
+            }
+        }
+        .frame(maxHeight: 200)
     }
     
     
     // MARK: - Reading Sessions
     private var readingSessionsSection: some View {
         
-        Section {
+        VStack {
             HStack {
                 Text("Reading Sessions")
                     .font(.callout)
@@ -322,26 +383,32 @@ struct BookDetailView: View {
                 ForEach(groupedReadingSessions, id: \.date) { group in
                     VStack(alignment: .leading, spacing: 0) {
                         
-                        // Date label at the top of the group (same background color)
-                        Text(group.date, style: .date)
-                            .font(.subheadline)
-                            .padding(.horizontal, 12)
-                            .padding(.top)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        
-                        VStack(spacing: 0) {
-                            ForEach(group.sessions) { session in
-                                HStack {
-                                    Text(session.date, style: .time)
-                                        .font(.headline)
+                        ForEach(group.sessions) { session in
+                            
+                            List {
+                                HStack(alignment: .center) {
+                                    VStack(alignment: .leading) {
+                                        if session == group.sessions.first {
+                                            Text(group.date, style: .date)
+                                                .font(.subheadline)
+
+                                        }
+                                        Text(session.date, style: .time)
+                                            .font(.headline)
+                                    }
                                     Spacer()
                                     Text("\(session.startPage) - \(session.endPage ?? session.startPage)")
                                         .foregroundColor(.secondary)
                                 }
-                                .padding(12)
-                                
-                                if session != group.sessions.last {
-                                    Divider()
+                                .swipeActions {
+                                    Button("Edit") {
+                                        // Trigger the sheet to edit the session
+                                    }
+                                    .tint(.blue)
+
+                                    Button("Delete", role: .destructive) {
+                                        // Handle deletion
+                                    }
                                 }
                             }
                         }
