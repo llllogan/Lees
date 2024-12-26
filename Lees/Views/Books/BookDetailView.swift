@@ -320,14 +320,6 @@ struct BookDetailView: View {
     
     private var progressChartDetail: some View {
         Chart {
-            if let firstDate = readingSessions.first?.date {
-                LineMark(
-                    x: .value("Start Date", firstDate),
-                    y: .value("End Page", 0)
-                )
-                .foregroundStyle(Color.progressGreen)
-                .interpolationMethod(.catmullRom)
-            }
             ForEach(readingSessions) { session in
                 LineMark(
                     x: .value(
@@ -338,7 +330,7 @@ struct BookDetailView: View {
                     y: .value("End Page", session.endPage ?? session.startPage)
                 )
                 .foregroundStyle(Color.progressGreen)
-                .interpolationMethod(.catmullRom)
+                .interpolationMethod(.linear)
             }
         }
         .chartXAxis {
@@ -383,32 +375,26 @@ struct BookDetailView: View {
                 ForEach(groupedReadingSessions, id: \.date) { group in
                     VStack(alignment: .leading, spacing: 0) {
                         
-                        ForEach(group.sessions) { session in
-                            
-                            List {
-                                HStack(alignment: .center) {
-                                    VStack(alignment: .leading) {
-                                        if session == group.sessions.first {
-                                            Text(group.date, style: .date)
-                                                .font(.subheadline)
-
-                                        }
-                                        Text(session.date, style: .time)
-                                            .font(.headline)
-                                    }
+                        // Date label at the top of the group (same background color)
+                        Text(group.date, style: .date)
+                            .font(.subheadline)
+                            .padding(.horizontal, 12)
+                            .padding(.top)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        
+                        VStack(spacing: 0) {
+                            ForEach(group.sessions) { session in
+                                HStack {
+                                    Text(session.date, style: .time)
+                                        .font(.headline)
                                     Spacer()
                                     Text("\(session.startPage) - \(session.endPage ?? session.startPage)")
                                         .foregroundColor(.secondary)
                                 }
-                                .swipeActions {
-                                    Button("Edit") {
-                                        // Trigger the sheet to edit the session
-                                    }
-                                    .tint(.blue)
-
-                                    Button("Delete", role: .destructive) {
-                                        // Handle deletion
-                                    }
+                                .padding(12)
+                                
+                                if session != group.sessions.last {
+                                    Divider()
                                 }
                             }
                         }
