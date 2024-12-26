@@ -55,6 +55,8 @@ struct BookDetailView: View {
     
     @State private var showDetailedChart = false
     
+    @State private var readingSessionToEdit: ReadingSession? = nil
+    
     
     // MARK: - Init
     init(book: Book, autoStartReadingSession: Bool = false) {
@@ -145,6 +147,9 @@ struct BookDetailView: View {
                     }
                 }
             }
+        }
+        .sheet(item: $readingSessionToEdit) { session in
+            EditReadingSessionView(session: session)
         }
         .alert("Delete Book?", isPresented: $showingDeleteConfirmation) {
             Button("Delete", role: .destructive) {
@@ -384,14 +389,38 @@ struct BookDetailView: View {
                         
                         VStack(spacing: 0) {
                             ForEach(group.sessions) { session in
-                                HStack {
-                                    Text(session.date, style: .time)
-                                        .font(.headline)
-                                    Spacer()
-                                    Text("\(session.startPage) - \(session.endPage ?? session.startPage)")
-                                        .foregroundColor(.secondary)
+                                
+                                SwipeableRow {
+                                    HStack {
+                                        Text(session.date, style: .time)
+                                            .font(.headline)
+                                        Spacer()
+                                        Text("\(session.startPage) - \(session.endPage ?? session.startPage)")
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .padding(12)
+                                    .background(Color(UIColor.niceGray))
+                                } leadingActions: {
+                                    Button {
+                                        readingSessionToEdit = session
+                                    } label: {
+                                        HStack {
+                                            Image(systemName: "pencil")
+                                            Text("Edit")
+                                        }
+                                        .foregroundColor(.white)
+                                    }
+                                } trailingActions: {
+                                    Button {
+                                        deleteReadingSession(session)
+                                    } label: {
+                                        HStack {
+                                            Image(systemName: "trash")
+                                            Text("Delete")
+                                        }
+                                        .foregroundColor(.white)
+                                    }
                                 }
-                                .padding(12)
                                 
                                 if session != group.sessions.last {
                                     Divider()
@@ -405,8 +434,50 @@ struct BookDetailView: View {
             }
         }
     }
+    
+    // MARK: - Edit Reading Session Sheet
+    struct EditReadingSessionView: View {
+        @Environment(\.dismiss) private var dismiss
+        
+        // If `ReadingSession` is an `@Model` or `ObservableObject`,
+        // you can bind directly. Otherwise, make sure you handle changes properly.
+        @Bindable var session: ReadingSession
+        
+        var body: some View {
+            NavigationStack {
+                Form {
+                    TextField("Start Page", value: $session.startPage, format: .number)
+                    TextField("End Page", value: $session.endPage, format: .number)
+                }
+                .navigationTitle("Edit Session")
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button("Cancel") {
+                            dismiss()
+                        }
+                    }
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Save") {
+                            // Perform any additional saving logic if needed
+                            dismiss()
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    
     // MARK: - Helpers
     
+    private func deleteReadingSession(_ session: ReadingSession) {
+        context.delete(session)
+        do {
+            try context.save()
+        } catch {
+            print("Failed to delete session: \(error)")
+        }
+    }
     
     private func startReadingSession() {
         currentSession = ReadingSession(
