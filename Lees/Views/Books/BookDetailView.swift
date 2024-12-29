@@ -237,20 +237,22 @@ struct BookDetailView: View {
                     .fontWeight(.bold)
                     .foregroundColor(.secondary)
                 Spacer()
+                Text("From page \(currentSession?.startPage ?? nextSessionStartPage)")
+                    .font(.title3)
+                    .fontWeight(.bold)
+                Spacer()
                 Label {
                     Text(formattedElapsedTime)
                         .contentTransition(.numericText())
                         .animation(.default, value: formattedElapsedTime)
-                        .font(.title3)
-                        .fontWeight(.bold)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 } icon: {
                     Image(systemName: "record.circle")
-                        // .symbolEffect(.pulse.byLayer, options: .repeat(.continuous))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .symbolEffect(.pulse.byLayer, options: .repeat(.continuous))
                 }
-                Spacer()
-                Text("Starting on page \(currentSession?.startPage ?? nextSessionStartPage)")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             
