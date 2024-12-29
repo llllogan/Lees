@@ -294,7 +294,7 @@ struct BookDetailView: View {
                         showDetailedChart.toggle()
                     }
                 }) {
-                    Image(systemName: showDetailedChart ? "eye" : "eye.slash")
+                    Image(systemName: showDetailedChart ? "align.vertical.bottom.fill" : "align.vertical.bottom")
                     Text("Breakdown")
                         .font(.subheadline)
                 }
@@ -382,12 +382,6 @@ struct BookDetailView: View {
                     .font(.callout)
                     .foregroundColor(.secondary)
                 Spacer()
-                Button(action: {
-                    
-                }){
-                    Text("View More")
-                        .font(.subheadline)
-                }
             }
             VStack {
                 ForEach(groupedReadingSessions, id: \.date) { group in
