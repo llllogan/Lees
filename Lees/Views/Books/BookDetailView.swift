@@ -36,6 +36,19 @@ struct BookDetailView: View {
             .sorted(by: { $0.date > $1.date })
     }
     
+    private var bookProgress: Int {
+        guard let mostRecentSession = readingSessions.sorted(by: { $0.date > $1.date }).first,
+              book.totalPages > 0
+        else {
+            return 0
+        }
+        
+        let currentPage = mostRecentSession.endPage ?? mostRecentSession.startPage
+        let fractionComplete = Double(currentPage) / Double(book.totalPages)
+        
+        return min(100, Int((fractionComplete * 100).rounded()))
+    }
+    
     
     @State private var showingEditBookSheet = false
     @State private var showingEndPagePrompt = false
@@ -311,7 +324,7 @@ struct BookDetailView: View {
             
             BarMark(
                 xStart: .value("Start", 0),
-                xEnd:   .value("End", book.progress),
+                xEnd:   .value("End", bookProgress),
                 y:      .value("Category", "progress")
             )
             .foregroundStyle(Color.progressGreen)

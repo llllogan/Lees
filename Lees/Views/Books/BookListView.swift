@@ -12,6 +12,7 @@ struct BookListView: View {
     @Environment(\.modelContext) private var context
     
     @Query private var books: [Book]
+    @Query private var allReadingSessions: [ReadingSession]
 
     @State private var showingAddBookSheet = false
     
@@ -33,7 +34,7 @@ struct BookListView: View {
                 LazyVGrid(columns: columns, spacing: 16) {
                     ForEach(books) { book in
                         NavigationLink(value: book) {
-                            BookGridItemView(book: book)
+                            BookGridItemView(book: book, allReadingSessions: allReadingSessions)
                         }
                         .contextMenu {
                             Button("Edit Book") {
@@ -103,6 +104,34 @@ struct BookListView: View {
 struct BookGridItemView: View {
     
     let book: Book
+    let allReadingSessions: [ReadingSession]
+    
+    private var readingSessions: [ReadingSession] {
+        allReadingSessions.filter { $0.book.id == book.id }
+    }
+    
+    private var bookCurrentPage: Int {
+        guard let mostRecentSession = readingSessions.sorted(by: { $0.date > $1.date }).first else {
+            return 0
+        }
+        
+        return mostRecentSession.endPage ?? mostRecentSession.startPage
+    }
+    
+    private var bookProgress: Int {
+        guard let mostRecentSession = readingSessions.sorted(by: { $0.date > $1.date }).first,
+              book.totalPages > 0
+        else {
+            return 0
+        }
+        
+        let currentPage = mostRecentSession.endPage ?? mostRecentSession.startPage
+        let fractionComplete = Double(currentPage) / Double(book.totalPages)
+        
+        return min(100, Int((fractionComplete * 100).rounded()))
+    }
+
+
 
     
     var body: some View {
@@ -122,10 +151,10 @@ struct BookGridItemView: View {
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.leading)
             
-            Label("\(book.currentPage ?? 0)", systemImage: "book.fill")
+            Label("\(bookCurrentPage)", systemImage: "book.fill")
                 .font(.caption)
                 .foregroundColor(.secondary)
-            Label("\(book.progress)%", systemImage: "flag.pattern.checkered")
+            Label("\(bookProgress)%", systemImage: "flag.pattern.checkered")
                 .font(.caption)
                 .foregroundColor(.secondary)
             
