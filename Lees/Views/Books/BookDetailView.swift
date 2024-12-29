@@ -15,9 +15,26 @@ struct BookDetailView: View {
     
     @Bindable var book: Book
     
-    var autoStartReadingSession: Bool = false
-    
     @Query private var allReadingSessions: [ReadingSession]
+    @State private var currentSession: ReadingSession?
+    
+    @State private var showingEditBookSheet = false
+    @State private var showingEndPagePrompt = false
+    @State private var showingDeleteConfirmation = false
+    @State private var showDetailedChart = false
+    
+    @State private var pausedSession = true
+    @State private var hasStartedSession = false
+    
+    @State private var endPageText = ""
+    @State private var now = Date()
+    
+    @State private var readingSessionToEdit: ReadingSession? = nil
+    @State private var uploadedImage: UIImage? = nil
+    @State private var timer: Timer? = nil
+    
+    
+    private var autoStartReadingSession: Bool = false
     
     private var readingSessions: [ReadingSession] {
         allReadingSessions.filter { $0.book.id == book.id }
@@ -49,26 +66,6 @@ struct BookDetailView: View {
         return min(100, Int((fractionComplete * 100).rounded()))
     }
     
-    
-    @State private var showingEditBookSheet = false
-    @State private var showingEndPagePrompt = false
-    
-    @State private var endPageText = ""
-    
-    @State private var currentSession: ReadingSession?
-    @State private var pausedSession = true
-    @State private var now = Date()
-    @State private var timer: Timer? = nil
-    
-    @State private var uploadedImage: UIImage? = nil
-    
-    @State private var showingDeleteConfirmation = false
-    
-    @State private var hasStartedSession = false
-    
-    @State private var showDetailedChart = false
-    
-    @State private var readingSessionToEdit: ReadingSession? = nil
     
     
     // MARK: - Init
@@ -162,7 +159,9 @@ struct BookDetailView: View {
             }
         }
         .sheet(item: $readingSessionToEdit) { session in
-            EditReadingSessionView(session: session)
+            EditReadingSessionView(session: session, onComplete: {
+                
+            })
         }
         .alert("Delete Book?", isPresented: $showingDeleteConfirmation) {
             Button("Delete", role: .destructive) {
@@ -342,15 +341,12 @@ struct BookDetailView: View {
         Chart {
             ForEach(readingSessions) { session in
                 LineMark(
-                    x: .value(
-                        "Start Date",
-                        session.date,
-                        unit: .minute
-                    ),
+                    x: .value("Start Date", session.date, unit: .minute),
                     y: .value("End Page", session.endPage ?? session.startPage)
                 )
                 .foregroundStyle(Color.progressGreen)
                 .interpolationMethod(.linear)
+                .lineStyle(StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
             }
         }
         .chartXAxis {
@@ -448,27 +444,68 @@ struct BookDetailView: View {
     struct EditReadingSessionView: View {
         @Environment(\.dismiss) private var dismiss
         
-        // If `ReadingSession` is an `@Model` or `ObservableObject`,
-        // you can bind directly. Otherwise, make sure you handle changes properly.
         @Bindable var session: ReadingSession
+        
+        var onComplete: () -> Void = { }
+        
+        private var endDateBinding: Binding<Date> {
+            Binding<Date>(
+                get: {
+                    session.endDate ?? session.date
+                },
+                set: { newValue in
+                    session.endDate = newValue
+                }
+            )
+        }
         
         var body: some View {
             NavigationStack {
                 Form {
-                    TextField("Start Page", value: $session.startPage, format: .number)
-                    TextField("End Page", value: $session.endPage, format: .number)
+                    Section(header: Text("Pages")) {
+                        HStack {
+                            Text("Start Page")
+                            Spacer()
+                            TextField("Start Page",
+                                      value: $session.startPage,
+                                      format: .number)
+                            .multilineTextAlignment(.trailing)
+                            .keyboardType(.numberPad)
+                        }
+                        
+                        HStack {
+                            Text("End Page")
+                            Spacer()
+                            TextField("End Page",
+                                      value: $session.endPage,
+                                      format: .number)
+                            .multilineTextAlignment(.trailing)
+                            .keyboardType(.numberPad)
+                        }
+                    }
+                    
+                    Section(header: Text("Dates")) {
+                        DatePicker("Start Date",
+                                   selection: $session.date,
+                                   displayedComponents: [.date, .hourAndMinute])
+                        
+                        DatePicker("End Date",
+                                   selection: endDateBinding,
+                                   displayedComponents: [.date, .hourAndMinute])
+                    }
                 }
                 .navigationTitle("Edit Session")
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
                         Button("Cancel") {
                             dismiss()
+                            onComplete()
                         }
                     }
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button("Save") {
-                            // Perform any additional saving logic if needed
                             dismiss()
+                            onComplete()
                         }
                     }
                 }
