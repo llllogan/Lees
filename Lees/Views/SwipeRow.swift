@@ -13,13 +13,13 @@ struct SwipeableRow<Content: View, LeadingActions: View, TrailingActions: View>:
     private let leadingActions: LeadingActions
     private let trailingActions: TrailingActions
     
-    // Maximum offset to reveal actions fully
     private let actionWidth: CGFloat = 100
-    // How far the user must drag to “lock in” an action
     private let swipeThreshold: CGFloat = 50
     
     @State private var offsetX: CGFloat = 0
     @State private var direction: SwipeDirection = .none
+    
+    @Binding var resetOffset: Bool
     
     enum SwipeDirection {
         case none
@@ -28,10 +28,12 @@ struct SwipeableRow<Content: View, LeadingActions: View, TrailingActions: View>:
     }
     
     init(
+        resetOffset: Binding<Bool>,
         @ViewBuilder content: () -> Content,
         @ViewBuilder leadingActions: () -> LeadingActions,
         @ViewBuilder trailingActions: () -> TrailingActions
     ) {
+        self._resetOffset = resetOffset
         self.content = content()
         self.leadingActions = leadingActions()
         self.trailingActions = trailingActions()
@@ -64,6 +66,15 @@ struct SwipeableRow<Content: View, LeadingActions: View, TrailingActions: View>:
                 .animation(.spring(response: 0.3, dampingFraction: 0.7), value: offsetX)
         }
         .clipped()
+        .onChange(of: resetOffset) { oldValue, newValue in
+            if newValue {
+                withAnimation {
+                    offsetX = 0
+                    direction = .none
+                }
+                resetOffset = false
+            }
+        }
     }
     
     private var dragGesture: some Gesture {

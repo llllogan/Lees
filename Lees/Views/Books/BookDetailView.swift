@@ -33,6 +33,8 @@ struct BookDetailView: View {
     @State private var uploadedImage: UIImage? = nil
     @State private var timer: Timer? = nil
     
+    @State private var resetSwipeRowOffsets: Bool = false
+    
     
     private var autoStartReadingSession: Bool = false
     
@@ -160,7 +162,7 @@ struct BookDetailView: View {
         }
         .sheet(item: $readingSessionToEdit) { session in
             EditReadingSessionView(session: session, onComplete: {
-                
+                resetSwipeRowOffsets = true
             })
         }
         .alert("Delete Book?", isPresented: $showingDeleteConfirmation) {
@@ -385,7 +387,6 @@ struct BookDetailView: View {
                 ForEach(groupedReadingSessions, id: \.date) { group in
                     VStack(alignment: .leading, spacing: 0) {
                         
-                        // Date label at the top of the group (same background color)
                         Text(group.date, style: .date)
                             .font(.subheadline)
                             .padding(.horizontal, 12)
@@ -395,37 +396,40 @@ struct BookDetailView: View {
                         VStack(spacing: 0) {
                             ForEach(group.sessions) { session in
                                 
-                                SwipeableRow {
-                                    HStack {
-                                        Text(session.date, style: .time)
-                                            .font(.headline)
-                                        Spacer()
-                                        Text("\(session.startPage) - \(session.endPage ?? session.startPage)")
-                                            .foregroundColor(.secondary)
-                                    }
-                                    .padding(12)
-                                    .background(Color(UIColor.niceGray))
-                                } leadingActions: {
-                                    Button {
-                                        readingSessionToEdit = session
-                                    } label: {
+                                SwipeableRow (
+                                    resetOffset: $resetSwipeRowOffsets,
+                                    content: {
                                         HStack {
-                                            Image(systemName: "pencil")
-                                            Text("Edit")
+                                            Text(session.date, style: .time)
+                                                .font(.headline)
+                                            Spacer()
+                                            Text("\(session.startPage) - \(session.endPage ?? session.startPage)")
+                                                .foregroundColor(.secondary)
                                         }
-                                        .foregroundColor(.white)
-                                    }
-                                } trailingActions: {
-                                    Button {
-                                        deleteReadingSession(session)
-                                    } label: {
-                                        HStack {
-                                            Image(systemName: "trash")
-                                            Text("Delete")
+                                        .padding(12)
+                                        .background(Color(UIColor.niceGray))
+                                    }, leadingActions: {
+                                        Button {
+                                            readingSessionToEdit = session
+                                        } label: {
+                                            HStack {
+                                                Image(systemName: "pencil")
+                                                Text("Edit")
+                                            }
+                                            .foregroundColor(.white)
                                         }
-                                        .foregroundColor(.white)
+                                    }, trailingActions: {
+                                        Button {
+                                            deleteReadingSession(session)
+                                        } label: {
+                                            HStack {
+                                                Image(systemName: "trash")
+                                                Text("Delete")
+                                            }
+                                            .foregroundColor(.white)
+                                        }
                                     }
-                                }
+                                )
                                 
                                 if session != group.sessions.last {
                                     Divider()
