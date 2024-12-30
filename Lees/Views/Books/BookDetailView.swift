@@ -387,11 +387,17 @@ struct BookDetailView: View {
                 ForEach(groupedReadingSessions, id: \.date) { group in
                     VStack(alignment: .leading, spacing: 0) {
                         
-                        Text(group.date, style: .date)
-                            .font(.subheadline)
-                            .padding(.horizontal, 12)
-                            .padding(.top)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                        VStack(alignment: .leading) {
+                            Text(group.date, style: .date)
+                                .font(.subheadline)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            Text("\(pagesRead(for: group)) pages read")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.top)
+                        .padding(.bottom, 4)
                         
                         VStack(spacing: 0) {
                             ForEach(group.sessions) { session in
@@ -630,6 +636,20 @@ struct BookDetailView: View {
         self.currentSession = nil
         self.endPageText = ""
         self.showingEndPagePrompt = false
+    }
+    
+    
+    private func pagesRead(for group: (date: Date, sessions: [ReadingSession])) -> Int {
+        guard !group.sessions.isEmpty else { return 0 }
+        
+        let earliestSession = group.sessions.last
+        let latestSession   = group.sessions.first
+        
+        let startPage = earliestSession?.startPage ?? 0
+        let endPage   = (latestSession?.endPage ?? latestSession?.startPage) ?? 0
+        let total     = endPage - startPage
+        
+        return max(0, total)
     }
     
 }

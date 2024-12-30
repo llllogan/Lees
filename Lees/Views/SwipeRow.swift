@@ -48,7 +48,7 @@ struct SwipeableRow<Content: View, LeadingActions: View, TrailingActions: View>:
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.horizontal)
-                .background(Color.blue)
+                .background(direction == .leading ? Color.blue : Color(UIColor.niceGray))
                 
                 HStack {
                     Spacer()
@@ -56,7 +56,7 @@ struct SwipeableRow<Content: View, LeadingActions: View, TrailingActions: View>:
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.horizontal)
-                .background(Color.red)
+                .background(direction == .trailing ? Color.red : Color(UIColor.niceGray))
             }
             
             content
