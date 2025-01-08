@@ -90,7 +90,7 @@ struct BookDetailView: View {
                         .background(Color(UIColor.niceGray))
                         .cornerRadius(16)
                         .padding(.horizontal)
-                        .transition(.opacity)
+                        .transition(.move(edge: .top).combined(with: .opacity))
                 }
                 
                 progressDisplay
@@ -108,7 +108,7 @@ struct BookDetailView: View {
     
             }
         }
-        .animation(.default, value: currentSession)
+        .animation(.easeInOut, value: currentSession)
         .onAppear {
             if autoStartReadingSession, !hasStartedSession {
                 startReadingSession()
@@ -138,6 +138,8 @@ struct BookDetailView: View {
         .ignoresSafeArea(edges: .top)
         .sheet(isPresented: $showingEditBookSheet) {
             EditBookView(book: book)
+                .presentationDetents(.init([.medium]))
+                .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showingEndPagePrompt) {
             NavigationStack {
@@ -159,11 +161,15 @@ struct BookDetailView: View {
                     }
                 }
             }
+            .presentationDetents(.init([.fraction(0.3)]))
+            .presentationDragIndicator(.visible)
         }
         .sheet(item: $readingSessionToEdit) { session in
             EditReadingSessionView(session: session, onComplete: {
                 resetSwipeRowOffsets = true
             })
+            .presentationDetents(.init([.medium]))
+            .presentationDragIndicator(.visible)
         }
         .alert("Delete Book?", isPresented: $showingDeleteConfirmation) {
             Button("Delete", role: .destructive) {
@@ -340,10 +346,21 @@ struct BookDetailView: View {
     
     
     private var progressChartDetail: some View {
-        Chart {
+        let dateRange = readingSessions.map(\.date)
+        let minDate = dateRange.min() ?? Date()
+        let maxDate = dateRange.max() ?? Date()
+        
+        let monthsSpan = Calendar.current.dateComponents([.month], from: minDate, to: maxDate).month ?? 0
+        
+        let showMonths = monthsSpan > 1
+        
+        let strideComponent: Calendar.Component = showMonths ? .month : .day
+        let strideCount = showMonths ? 1 : 3
+        
+        return Chart {
             ForEach(readingSessions) { session in
                 LineMark(
-                    x: .value("Start Date", session.date, unit: .minute),
+                    x: .value("Date", session.date),
                     y: .value("End Page", session.endPage ?? session.startPage)
                 )
                 .foregroundStyle(Color.progressGreen)
@@ -352,14 +369,23 @@ struct BookDetailView: View {
             }
         }
         .chartXAxis {
-            AxisMarks(position: .bottom, values: .stride(by: .day)) { value in
+            AxisMarks(
+                position: .bottom,
+                values: .stride(by: strideComponent, count: strideCount)
+            ) { value in
                 AxisGridLine()
-                AxisValueLabel() {
+                
+                AxisValueLabel {
                     if let dateValue = value.as(Date.self) {
-                        Text(dateValue, format: .dateTime.weekday(.abbreviated))
-                            .foregroundColor(.secondary)
-                    } else {
-                        Text("")
+                        if showMonths {
+                            // Show abbreviated month if spanning multiple months
+                            Text(dateValue, format: .dateTime.month(.abbreviated))
+                                .foregroundStyle(.secondary)
+                        } else {
+                            // Otherwise show day-of-month
+                            Text(dateValue, format: .dateTime.day())
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
             }
@@ -371,7 +397,6 @@ struct BookDetailView: View {
         }
         .frame(maxHeight: 200)
     }
-    
     
     // MARK: - Reading Sessions
     private var readingSessionsSection: some View {
